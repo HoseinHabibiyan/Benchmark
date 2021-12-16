@@ -9,7 +9,7 @@ This benchmark is for measuring the speed of programming languages on processing
 - We intend to find and report 4,997 routes that not exist
 - There are 996,000 records in the routes table
 
-> Loading data from the database is not part of the benchmark time
+> Loading data from the database is not part of the benchmark time .
 > Only calculation and reporting operations are effective at benchmark time
 
 # Contributing
