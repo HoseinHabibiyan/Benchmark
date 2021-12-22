@@ -30,7 +30,7 @@ func main() {
 	startTime := time.Now()
 
 	result := calculate()
-	report(result)
+	// report(result)
 
 	//end
 
@@ -48,7 +48,7 @@ func calculate() []Result {
 				continue
 			}
 
-			exist := contains(cities[i].id, cities[j].id)
+			exist := contains(&cities[i].id, &cities[j].id)
 
 			if !exist {
 				result = append(result, Result{cities[i].title, cities[j].title})
@@ -79,11 +79,6 @@ func report(result []Result) {
 
 func getCities() []City {
 
-	err := db.Ping()
-	if err != nil {
-		fmt.Print(err)
-	}
-
 	tsql := "select Id,Title from Cities"
 
 	rows, err := db.Query(tsql)
@@ -111,11 +106,6 @@ func getCities() []City {
 }
 
 func getRoutes() []Route {
-
-	err := db.Ping()
-	if err != nil {
-		fmt.Print(err)
-	}
 
 	tsql := "select sourceCityId,destinationCityId from Routes"
 

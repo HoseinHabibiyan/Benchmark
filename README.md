@@ -15,7 +15,7 @@ This benchmark is for measuring the speed of programming languages on processing
 # Contributing
 
 1. Fork it!
-2. Create a benchmark from your favorite programming language 
+2. Create a benchmark from your favorite programming language or improve existing codes
 3. Submit a pull request
 
 If you find this repository useful, please give it a star. Thanks!

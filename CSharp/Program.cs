@@ -45,17 +45,20 @@ class Program
         {
             for (int j = 0; j < cityCount; j++)
             {
-                if (_cities[i].Id == _cities[j].Id)
+                var x = _cities[i].Id;
+                var y = _cities[j].Id;
+
+                if (x == y)
                     continue;
 
-                bool exist = Contains(_cities[i].Id, _cities[j].Id);
+                bool exist = Contains(ref x, ref y);
 
                 if (!exist)
                 {
                     result.Add(new Result()
                     {
-                        SourceCityId = _cities[i].Id,
-                        DestinationCityId = _cities[j].Id
+                        SourceCityId = x,
+                        DestinationCityId = y
                     });
                 }
             }
@@ -66,12 +69,15 @@ class Program
         return result;
     }
 
-    static bool Contains(int sourceCityId, int destinationCityId)
+    static bool Contains(ref int sourceCityId, ref int destinationCityId)
     {
-        int count = _routes.Count();
+        int count = _routes.Count;
         for (int i = 0; i < count; i++)
         {
-            if (_routes[i].SourceCityId == sourceCityId && _routes[i].DestinationCityId == destinationCityId)
+            var x = _routes[i].SourceCityId;
+            var y = _routes[i].DestinationCityId;
+
+            if (x == sourceCityId && y == destinationCityId)
             {
                 return true;
             }
@@ -83,7 +89,8 @@ class Program
     {
         var stringbuilder = new StringBuilder();
 
-        for (int i = 0; i < results.Count; i++)
+        var count = results.Count;
+        for (int i = 0; i < count; i++)
         {
             stringbuilder.Append(results[i].SourceCityId).Append(" -> ").Append(results[i].DestinationCityId).Append('\n');
         }
@@ -105,19 +112,19 @@ class Program
         return db.Query<Routes>("select * from [dbo].Routes", commandType: CommandType.Text).ToList();
     }
 
-    public class City
+    public struct City
     {
         public int Id { get; set; }
         public string Title { get; set; }
     }
 
-    public class Routes
+    public struct Routes
     {
         public int SourceCityId { get; set; }
         public int DestinationCityId { get; set; }
     }
 
-    public class Result
+    public struct Result
     {
         public int SourceCityId { get; set; }
         public int DestinationCityId { get; set; }
