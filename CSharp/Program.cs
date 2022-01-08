@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
@@ -9,36 +10,34 @@ using Dapper;
 class Program
 {
     private static string connectionString = "Data Source =.; Initial Catalog = RouteBenchmark; Trusted_Connection=True;";
-    private static List<Routes> _routes;
-    private static List<City> _cities;
+    public static List<City> _cities;
+    public static List<Result> _result;
+    public static ImmutableSortedSet<Routes> _routes;
 
     static void Main(string[] args)
     {
         // load data from database
         _cities = GetCities();
         _routes = GetRoutes();
+        _result = new List<Result>();
 
-        // start 
+        // start
         var watch = System.Diagnostics.Stopwatch.StartNew();
 
-        var result = Calculate(); 
-
-        Report(result); 
+        Calculate();
+        //end
 
         watch.Stop();
-        // end
 
-        // print duration
-        var duration = watch.Elapsed.TotalMinutes;
-        Console.WriteLine($"Duration : {duration}");
+        Console.WriteLine($"Duration(Milliseconds): {watch.Elapsed.TotalMilliseconds}");
+        Console.WriteLine($"Result Count: {_result.Count()}");
+
 
         Console.ReadKey();
     }
 
-    static List<Result> Calculate()
+    public static void Calculate()
     {
-        var result = new List<Result>();
-
         int cityCount = _cities.Count;
 
         for (int i = 0; i < cityCount; i++)
@@ -47,81 +46,52 @@ class Program
             {
                 var x = _cities[i].Id;
                 var y = _cities[j].Id;
-
                 if (x == y)
                     continue;
 
-                bool exist = Contains(ref x, ref y);
+                bool exist = _routes.Contains(new Routes { SourceCityId = x, DestinationCityId = y });
 
                 if (!exist)
                 {
-                    result.Add(new Result()
+                    _result.Add(new Result()
                     {
-                        SourceCityId = x,
-                        DestinationCityId = y
+                        SourceCityId = _cities[i].Id,
+                        DestinationCityId = _cities[j].Id
                     });
                 }
             }
-
-            Console.WriteLine($"City : {i + 1}");
         }
-
-        return result;
     }
 
-    static bool Contains(ref int sourceCityId, ref int destinationCityId)
-    {
-        int count = _routes.Count;
-        for (int i = 0; i < count; i++)
-        {
-            var x = _routes[i].SourceCityId;
-            var y = _routes[i].DestinationCityId;
-
-            if (x == sourceCityId && y == destinationCityId)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    static void Report(List<Result> results)
-    {
-        var stringbuilder = new StringBuilder();
-
-        var count = results.Count;
-        for (int i = 0; i < count; i++)
-        {
-            stringbuilder.Append(results[i].SourceCityId).Append(" -> ").Append(results[i].DestinationCityId).Append('\n');
-        }
-        Console.WriteLine(stringbuilder.ToString());
-        Console.WriteLine($"Result Count : {results.Count}");
-    }
-
-
-
-    static List<City> GetCities()
+    public static List<City> GetCities()
     {
         using IDbConnection db = new SqlConnection(connectionString);
-        return db.Query<City>("select * from [dbo].Cities", commandType: CommandType.Text).ToList();
+        return db.Query<City>("select Id from [dbo].Cities", commandType: CommandType.Text).ToList();
     }
 
-    static List<Routes> GetRoutes()
+    public static ImmutableSortedSet<Routes> GetRoutes()
     {
         using IDbConnection db = new SqlConnection(connectionString);
-        return db.Query<Routes>("select * from [dbo].Routes", commandType: CommandType.Text).ToList();
+        return db.Query<Routes>("select * from [dbo].Routes", commandType: CommandType.Text).ToImmutableSortedSet();
     }
 
     public struct City
     {
         public int Id { get; set; }
-        public string Title { get; set; }
     }
 
-    public struct Routes
+    public struct Routes : IComparable<Routes>
     {
         public int SourceCityId { get; set; }
         public int DestinationCityId { get; set; }
+
+        public int CompareTo(Routes other)
+        {
+            int result = SourceCityId.CompareTo(other.SourceCityId);
+            if (result == 0)
+                result = DestinationCityId.CompareTo(other.DestinationCityId);
+            return result;
+        }
     }
 
     public struct Result
@@ -129,5 +99,4 @@ class Program
         public int SourceCityId { get; set; }
         public int DestinationCityId { get; set; }
     }
-
 }

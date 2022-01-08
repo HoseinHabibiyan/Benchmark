@@ -9,10 +9,11 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
-var connectionString = "server=.;database=RouteBenchmark;port=1433; Trusted_Connection=True;"
+var connectionString = "server=.;database=RouteBenchmark;port=1433;"
 var db *sql.DB
-var cities []City
-var routes []Route
+var cities = make(map[string]City)
+var routes = make(map[string]Route)
+var result = make(map[string]Result)
 
 func main() {
 
@@ -23,63 +24,45 @@ func main() {
 	}
 
 	// load data from database
-	cities = getCities()
-	routes = getRoutes()
+	getCities()
+	getRoutes()
 
 	//start
 	startTime := time.Now()
 
-	result := calculate()
-	// report(result)
-
+	calculate()
 	//end
 
-	fmt.Println("Duration : ", time.Since(startTime).Minutes())
+	fmt.Println("Duration(Milliseconds): ", time.Since(startTime).Milliseconds())
+	fmt.Println("Result Count: ", len(result))
+
 	var input string
 	fmt.Scanln(&input)
 }
 
-func calculate() []Result {
-	result := []Result{}
+func calculate() {
 
-	for i := 0; i < len(cities); i++ {
-		for j := 0; j < len(cities); j++ {
-			if cities[i] == cities[j] {
+	for _, c1 := range cities {
+		for _, c2 := range cities {
+
+			x := c1.id
+			y := c2.id
+
+			if x == y {
 				continue
 			}
 
-			exist := contains(&cities[i].id, &cities[j].id)
+			_, exist := routes[fmt.Sprintf("%v-%v", x, y)]
 
 			if !exist {
-				result = append(result, Result{cities[i].title, cities[j].title})
+				result[fmt.Sprintf("%v-%v", x, y)] = Result{c1.id, c2.id}
 			}
 		}
-		fmt.Println("City : ", i+1)
 	}
-	return result
 }
 
-func contains(sourceCityId int, destinationCityId int) bool {
-	for i := 0; i < len(routes); i++ {
-		if routes[i].sourceCityId == sourceCityId && routes[i].destinationCityId == destinationCityId {
-			return true
-		}
-	}
-	return false
-}
-
-func report(result []Result) {
-	str := ""
-	for i := 0; i < len(result); i++ {
-		str += fmt.Sprintf("%v -> %v \n", result[i].sourceCityTitle, result[i].destinationCityTitle)
-	}
-	fmt.Println(str)
-	fmt.Println("Result Count : ", len(result))
-}
-
-func getCities() []City {
-
-	tsql := "select Id,Title from Cities"
+func getCities() {
+	tsql := "select Id from Cities"
 
 	rows, err := db.Query(tsql)
 	if err != nil {
@@ -88,24 +71,19 @@ func getCities() []City {
 
 	defer rows.Close()
 
-	model := []City{}
-
 	for rows.Next() {
-		var title string
 		var id int
 
-		err := rows.Scan(&id, &title)
+		err := rows.Scan(&id)
 		if err != nil {
 			fmt.Print(err)
 		}
 
-		model = append(model, City{id, title})
+		cities[fmt.Sprintf("_%v", id)] = City{id}
 	}
-
-	return model
 }
 
-func getRoutes() []Route {
+func getRoutes() {
 
 	tsql := "select sourceCityId,destinationCityId from Routes"
 
@@ -116,8 +94,6 @@ func getRoutes() []Route {
 
 	defer rows.Close()
 
-	model := []Route{}
-
 	for rows.Next() {
 		var sourceCityId int
 		var destinationCityId int
@@ -127,15 +103,12 @@ func getRoutes() []Route {
 			fmt.Print(err)
 		}
 
-		model = append(model, Route{sourceCityId, destinationCityId})
+		routes[fmt.Sprintf("%v-%v", sourceCityId, destinationCityId)] = Route{sourceCityId, destinationCityId}
 	}
-
-	return model
 }
 
 type City struct {
-	id    int
-	title string
+	id int
 }
 
 type Route struct {
@@ -144,6 +117,6 @@ type Route struct {
 }
 
 type Result struct {
-	sourceCityTitle      string
-	destinationCityTitle string
+	sourceCityId      int
+	destinationCityId int
 }
