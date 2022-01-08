@@ -1,31 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Data;
-using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
-using System.Text;
-using Dapper;
+using Newtonsoft.Json;
 
 class Program
 {
-    private static string connectionString = "Data Source =.; Initial Catalog = RouteBenchmark; Trusted_Connection=True;";
     public static List<City> _cities;
     public static List<Result> _result;
     public static ImmutableSortedSet<Routes> _routes;
 
     static void Main(string[] args)
     {
-        // load data from database
-        _cities = GetCities();
-        _routes = GetRoutes();
+        // load data
+        var cities = File.ReadAllText(Path.Combine(Directory.GetCurrentDirectory(), "../../../../db/cities.json"));
+        _cities = JsonConvert.DeserializeObject<List<City>>(cities);
+
+        var routes = File.ReadAllText(Path.Combine(Directory.GetCurrentDirectory(), "../../../../db/routes.json"));
+        _routes = JsonConvert.DeserializeObject<ImmutableSortedSet<Routes>>(routes);
+
         _result = new List<Result>();
 
         // start
         var watch = System.Diagnostics.Stopwatch.StartNew();
 
         Calculate();
-        //end
 
         watch.Stop();
 
@@ -63,21 +63,11 @@ class Program
         }
     }
 
-    public static List<City> GetCities()
-    {
-        using IDbConnection db = new SqlConnection(connectionString);
-        return db.Query<City>("select Id from [dbo].Cities", commandType: CommandType.Text).ToList();
-    }
-
-    public static ImmutableSortedSet<Routes> GetRoutes()
-    {
-        using IDbConnection db = new SqlConnection(connectionString);
-        return db.Query<Routes>("select * from [dbo].Routes", commandType: CommandType.Text).ToImmutableSortedSet();
-    }
 
     public struct City
     {
         public int Id { get; set; }
+        public String Title { get; set; }
     }
 
     public struct Routes : IComparable<Routes>

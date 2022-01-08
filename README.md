@@ -7,9 +7,9 @@ Programming languages performance benchmark
 This benchmark is for measuring the speed of programming languages on processing a large amount of information
 
 - We intend to find and report 4,997 routes that not exist
-- There are 996,000 records in the routes table
+- There are 996,000 route in the routes.json file
 
-> Loading data from the database is not part of the benchmark time .
+> Loading data is not part of the benchmark time .
 > Only calculation operations are effective at benchmark time
 
 # Contributing

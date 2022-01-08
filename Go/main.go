@@ -1,37 +1,26 @@
 package main
 
 import (
-	"database/sql"
+	"encoding/json"
 	"fmt"
-	"log"
+	"io/ioutil"
 	"time"
-
-	_ "github.com/denisenkom/go-mssqldb"
 )
 
-var connectionString = "server=.;database=RouteBenchmark;port=1433;"
-var db *sql.DB
 var cities = make(map[string]City)
 var routes = make(map[string]Route)
 var result = make(map[string]Result)
 
 func main() {
 
-	db, _ = sql.Open("sqlserver", connectionString)
-	err := db.Ping()
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// load data from database
-	getCities()
-	getRoutes()
+	cities = getCities()
+	routes = getRoutes()
 
 	//start
 	startTime := time.Now()
 
 	calculate()
-	//end
 
 	fmt.Println("Duration(Milliseconds): ", time.Since(startTime).Milliseconds())
 	fmt.Println("Result Count: ", len(result))
@@ -45,8 +34,8 @@ func calculate() {
 	for _, c1 := range cities {
 		for _, c2 := range cities {
 
-			x := c1.id
-			y := c2.id
+			x := c1.Id
+			y := c2.Id
 
 			if x == y {
 				continue
@@ -55,65 +44,67 @@ func calculate() {
 			_, exist := routes[fmt.Sprintf("%v-%v", x, y)]
 
 			if !exist {
-				result[fmt.Sprintf("%v-%v", x, y)] = Result{c1.id, c2.id}
+				result[fmt.Sprintf("%v-%v", x, y)] = Result{c1.Id, c2.Id}
 			}
 		}
 	}
 }
 
-func getCities() {
-	tsql := "select Id from Cities"
+func getCities() map[string]City {
+	jsonFile, err := ioutil.ReadFile("../db/cities.json")
 
-	rows, err := db.Query(tsql)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 	}
 
-	defer rows.Close()
+	var arr []City
 
-	for rows.Next() {
-		var id int
+	err = json.Unmarshal(jsonFile, &arr)
 
-		err := rows.Scan(&id)
-		if err != nil {
-			fmt.Print(err)
-		}
-
-		cities[fmt.Sprintf("_%v", id)] = City{id}
+	if err != nil {
+		fmt.Println(err)
 	}
+
+	model := make(map[string]City)
+
+	for _, item := range arr {
+		model[fmt.Sprintf("_%v", item.Id)] = City{item.Id}
+	}
+
+	return model
 }
 
-func getRoutes() {
+func getRoutes() map[string]Route {
+	jsonFile, err := ioutil.ReadFile("../db/routes.json")
 
-	tsql := "select sourceCityId,destinationCityId from Routes"
-
-	rows, err := db.Query(tsql)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Println(err)
 	}
 
-	defer rows.Close()
+	var arr []Route
 
-	for rows.Next() {
-		var sourceCityId int
-		var destinationCityId int
+	err = json.Unmarshal(jsonFile, &arr)
 
-		err := rows.Scan(&sourceCityId, &destinationCityId)
-		if err != nil {
-			fmt.Print(err)
-		}
-
-		routes[fmt.Sprintf("%v-%v", sourceCityId, destinationCityId)] = Route{sourceCityId, destinationCityId}
+	if err != nil {
+		fmt.Println(err)
 	}
+
+	model := make(map[string]Route)
+
+	for _, item := range arr {
+		model[fmt.Sprintf("%v-%v", item.SourceCityId, item.DestinationCityId)] = Route{item.SourceCityId, item.DestinationCityId}
+	}
+
+	return model
 }
 
 type City struct {
-	id int
+	Id int
 }
 
 type Route struct {
-	sourceCityId      int
-	destinationCityId int
+	SourceCityId      int
+	DestinationCityId int
 }
 
 type Result struct {
